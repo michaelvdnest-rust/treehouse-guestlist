@@ -10,7 +10,23 @@ fn main() {
 
     let name = what_is_your_name();
 
-    println!("Hello, {name}");
+    let visitor_list = ["bert", "steve", "fred"];
+
+    let mut allow_visitor_in = false;
+    for visitor in &visitor_list {
+        if visitor.eq_ignore_ascii_case(&name) {
+            allow_visitor_in = true;
+            break;
+        }
+    }
+
+    let greeting = if allow_visitor_in {
+        format!("Welcome {name}")
+    } else {
+        "Sorry, you are not on the list.".to_string()
+    };
+
+    println!("Hello, {greeting}");
 }
 
 fn what_is_your_name() -> String {
