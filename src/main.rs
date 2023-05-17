@@ -14,6 +14,20 @@ fn main() {
     println!("{greeting}");
 }
 
+struct Visitor {
+    name: String,
+    greeting: String,
+}
+
+impl Visitor {
+    fn new(name: &str, greeting: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            greeting: greeting.to_string(),
+        }
+    }
+}
+
 fn what_is_your_name() -> String {
     let mut name = String::new();
     stdin()
@@ -25,21 +39,19 @@ fn what_is_your_name() -> String {
 }
 
 fn greet_visitor(name: &str) -> String {
-    let visitor_list = ["bert", "steve", "fred"];
+    let visitor_list = [
+        Visitor::new("Bert", "Hello Bert, enjoy your treehouse."),
+        Visitor::new("Steve", "Hi Steve. Your milk is in the fridge."),
+        Visitor::new("Fred", "Wow, who invited Fred?"),
+    ];
 
-    let mut allow_visitor_in = false;
-    for visitor in &visitor_list {
-        if visitor.eq_ignore_ascii_case(name) {
-            allow_visitor_in = true;
-            break;
-        }
-    }
+    let known_visitor = visitor_list
+        .iter()
+        .find(|visitor| visitor.name.eq_ignore_ascii_case(name));
 
-    if allow_visitor_in {
-        format!("Welcome {name}")
-    } else {
-        "Sorry, you are not on the list.".to_string()
-    }
+    known_visitor.map_or(
+        "You are not on the visitor list. Please leave.".to_string(), 
+        |visitor| visitor.greeting.clone())
 }
 
 #[cfg(test)]
@@ -48,21 +60,21 @@ mod tests {
 
     #[test]
     fn greet_bert() {
-        assert_eq!(greet_visitor("Bert"), "Welcome Bert");
+        assert_eq!(greet_visitor("Bert"), "Hello Bert, enjoy your treehouse.");
     }
 
     #[test]
     fn greet_steve() {
-        assert_eq!(greet_visitor("Steve"), "Welcome Steve");
+        assert_eq!(greet_visitor("Steve"), "Hi Steve. Your milk is in the fridge.");
     }
 
     #[test]
     fn greet_fred() {
-        assert_eq!(greet_visitor("Fred"), "Welcome Fred");
+        assert_eq!(greet_visitor("Fred"), "Wow, who invited Fred?");
     }
 
     #[test]
     fn greet_mike() {
-        assert_ne!(greet_visitor("Mike"), "Sorry, you are not on the list");
+        debug_assert_ne!(greet_visitor("Mike"), "You are not on the visitor list. Please leave!".to_string());
     }
 }
