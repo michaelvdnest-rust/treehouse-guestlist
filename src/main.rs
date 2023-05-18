@@ -6,14 +6,22 @@
 use std::io::stdin;
 
 fn main() {
-    println!("Hello, what's your name?");
-    let name = what_is_your_name();
+    let mut visitor_list: Vec<Visitor> = visitor_list();
+    loop {
+        println!("Hello, what's your name?");
+        let name = what_is_your_name();
 
-    let greeting = greet_visitor(&name);
+        match greet_visitor(&mut visitor_list, &name) {
+            Some(greeting) => println!("{greeting}"),
+            None => break,
+        }
+    }
 
-    println!("{greeting}");
+    println!("The final list of visitors");
+    println!("{visitor_list:#?}");
 }
 
+#[derive(Debug, Clone)]
 struct Visitor {
     name: String,
     greeting: String,
@@ -38,43 +46,64 @@ fn what_is_your_name() -> String {
     name.trim().to_string()
 }
 
-fn greet_visitor(name: &str) -> String {
-    let visitor_list = [
+fn visitor_list() -> Vec<Visitor> {
+    vec![
         Visitor::new("Bert", "Hello Bert, enjoy your treehouse."),
         Visitor::new("Steve", "Hi Steve. Your milk is in the fridge."),
         Visitor::new("Fred", "Wow, who invited Fred?"),
-    ];
+    ]
+}
 
+fn greet_visitor(visitor_list: &mut Vec<Visitor>, name: &str) -> Option<String> {
     let known_visitor = visitor_list
         .iter()
         .find(|visitor| visitor.name.eq_ignore_ascii_case(name));
 
-    known_visitor.map_or(
-        "You are not on the visitor list. Please leave.".to_string(), 
-        |visitor| visitor.greeting.clone())
+    #[allow(clippy::option_if_let_else)]
+    match known_visitor {
+        Some(visitor) => Some(visitor.greeting.clone()),
+        None => {
+            if name.is_empty() {
+                None
+            } else {
+                let visitor = Visitor::new(name, format!("Hello {name}").as_str());
+                visitor_list.push(visitor);
+                Some(format!("{name} is not on the visitor list."))
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::greet_visitor;
+    use crate::{greet_visitor, visitor_list};
+
+    fn greet_visitor_test(name: &str, greeting: &str) {
+        let mut visitors = visitor_list();
+        for visitor in visitors.clone() {
+            if visitor.name == name {
+                assert_eq!(greet_visitor(&mut visitors, name).unwrap(), greeting);
+            }
+        }
+    }
 
     #[test]
     fn greet_bert() {
-        assert_eq!(greet_visitor("Bert"), "Hello Bert, enjoy your treehouse.");
+        greet_visitor_test("Bert", "Hello Bert, enjoy your treehouse.");
     }
 
     #[test]
     fn greet_steve() {
-        assert_eq!(greet_visitor("Steve"), "Hi Steve. Your milk is in the fridge.");
+        greet_visitor_test("Steve", "Hi Steve. Your milk is in the fridge.");
     }
 
     #[test]
     fn greet_fred() {
-        assert_eq!(greet_visitor("Fred"), "Wow, who invited Fred?");
+        greet_visitor_test("Fred", "Wow, who invited Fred?");
     }
 
     #[test]
     fn greet_mike() {
-        debug_assert_ne!(greet_visitor("Mike"), "You are not on the visitor list. Please leave!".to_string());
+        greet_visitor_test("Mike", "Mike iw not on the visitor list.");
     }
 }
