@@ -21,19 +21,51 @@ fn main() {
     println!("{visitor_list:#?}");
 }
 
+// Store the name and the greeting
+// Store the visitor’s age, and forbid them from drinking if they’re under 21.
 #[derive(Debug, Clone)]
 struct Visitor {
     name: String,
     greeting: String,
+    action: VisitorAction,
+    age: i8,
 }
 
 impl Visitor {
-    fn new(name: &str, greeting: &str) -> Self {
+    fn new(name: &str, greeting: &str, action: VisitorAction, age: i8) -> Self {
         Self {
             name: name.to_string(),
             greeting: greeting.to_string(),
+            action,
+            age,
         }
     }
+
+    fn greeting(&self) -> String {
+        match &self.action {
+            VisitorAction::Accept => format!("Welcome to the tree house {}", self.name),
+            VisitorAction::AcceptWithNote { note } => {
+                let welcome = format!("Welcome to the treehouse, {}\n{}", self.name, note);
+                if self.age < 21 {
+                    format!("{}\nDo not server alcohol to {}.", welcome, self.name)
+                } else {
+                    welcome
+                }
+            }
+            VisitorAction::Probation => format!("{} is now a probationary member.", self.name),
+            VisitorAction::Refuse => format!("Do not allow {} in!", self.name),
+        }
+    }
+}
+
+// Store an action associated with a visitor: admit them, admit them with a
+// note, refuse entry, or mark them as probationary treehouse members
+#[derive(Debug, Clone)]
+enum VisitorAction {
+    Accept,
+    AcceptWithNote { note: String },
+    Refuse,
+    Probation,
 }
 
 fn what_is_your_name() -> String {
@@ -48,9 +80,21 @@ fn what_is_your_name() -> String {
 
 fn visitor_list() -> Vec<Visitor> {
     vec![
-        Visitor::new("Bert", "Hello Bert, enjoy your treehouse."),
-        Visitor::new("Steve", "Hi Steve. Your milk is in the fridge."),
-        Visitor::new("Fred", "Wow, who invited Fred?"),
+        Visitor::new(
+            "Bert",
+            "Hello Bert, enjoy your treehouse.",
+            VisitorAction::Accept,
+            45,
+        ),
+        Visitor::new(
+            "Steve",
+            "Hi Steve. Your milk is in the fridge.",
+            VisitorAction::AcceptWithNote {
+                note: String::from("Lactose-free milk is in the fridge"),
+            },
+            15,
+        ),
+        Visitor::new("Fred", "Wow, who invited Fred?", VisitorAction::Refuse, 30),
     ]
 }
 
@@ -61,12 +105,17 @@ fn greet_visitor(visitor_list: &mut Vec<Visitor>, name: &str) -> Option<String> 
 
     #[allow(clippy::option_if_let_else)]
     match known_visitor {
-        Some(visitor) => Some(visitor.greeting.clone()),
+        Some(visitor) => Some(visitor.greeting()),
         None => {
             if name.is_empty() {
                 None
             } else {
-                let visitor = Visitor::new(name, format!("Hello {name}").as_str());
+                let visitor = Visitor::new(
+                    name,
+                    format!("Hello {name}").as_str(),
+                    VisitorAction::Probation,
+                    0,
+                );
                 visitor_list.push(visitor);
                 Some(format!("{name} is not on the visitor list."))
             }
@@ -89,21 +138,26 @@ mod tests {
 
     #[test]
     fn greet_bert() {
-        greet_visitor_test("Bert", "Hello Bert, enjoy your treehouse.");
+        greet_visitor_test("Bert", "Welcome to the tree house Bert");
     }
 
     #[test]
     fn greet_steve() {
-        greet_visitor_test("Steve", "Hi Steve. Your milk is in the fridge.");
+        greet_visitor_test(
+            "Steve",
+            "Welcome to the treehouse, Steve\n\
+            Lactose-free milk is in the fridge\n\
+            Do not server alcohol to Steve.",
+        );
     }
 
     #[test]
     fn greet_fred() {
-        greet_visitor_test("Fred", "Wow, who invited Fred?");
+        greet_visitor_test("Fred", "Do not allow Fred in!");
     }
 
     #[test]
     fn greet_mike() {
-        greet_visitor_test("Mike", "Mike iw not on the visitor list.");
+        greet_visitor_test("Mike", "Mike is not on the visitor list.");
     }
 }
